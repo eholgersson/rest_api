@@ -1,0 +1,4 @@
+pandas
+flask
+numpy
+flask_restful

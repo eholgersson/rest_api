@@ -3,13 +3,14 @@ from flask import Flask
 from flask_restful import Resource, Api, reqparse
 import pandas as pd
 import ast
+import os
 app = Flask(__name__)
 api = Api(app)
 
 
 class Users(Resource):
     def get(self):
-        data = pd.read_csv(r"/Users/emanuel.holgersson/OneDrive - Solita Oy/Solita/Documents/Python/REST_APIs/API_template/users.csv", encoding='utf-8')
+        data = pd.read_csv(filename_usr, encoding='utf-8')
         data = data.to_dict()
         return {'data': data}, 200
 
@@ -25,7 +26,7 @@ class Users(Resource):
         args = parser.parse_args() # parse arguments to dict
 
         # read our csv
-        data = pd.read_csv(r"/Users/emanuel.holgersson/OneDrive - Solita Oy/Solita/Documents/Python/REST_APIs/API_template/users.csv", encoding='utf-8')
+        data = pd.read_csv(filename_usr, encoding='utf-8')
 
         if args['userId'] in list(data['userId']):
             return {
@@ -44,7 +45,7 @@ class Users(Resource):
             data = data.append(new_data, ignore_index=True)
             
             # write back to "database"
-            data.to_csv(r"/Users/emanuel.holgersson/OneDrive - Solita Oy/Solita/Documents/Python/REST_APIs/API_template/users.csv", encoding='utf-8', index=False)
+            data.to_csv(filename_usr, encoding='utf-8', index=False)
 
             return {'data':data.to_dict()}, 200
 
@@ -56,7 +57,7 @@ class Users(Resource):
         parser.add_argument('location', required=True)
         args = parser.parse_args() # parse arguments to dict
 
-        data = pd.read_csv(r"/Users/emanuel.holgersson/OneDrive - Solita Oy/Solita/Documents/Python/REST_APIs/API_template/users.csv", encoding='utf-8')
+        data = pd.read_csv(filename_usr, encoding='utf-8')
         
         if args['userId'] in list(data['userId']):
             # evaluate strings of list to lists
@@ -71,7 +72,7 @@ class Users(Resource):
             user_data['locations'] = user_data['locations'].values[0].append(args['location'])
 
             # write back to "database"
-            data.to_csv(r"/Users/emanuel.holgersson/OneDrive - Solita Oy/Solita/Documents/Python/REST_APIs/API_template/users.csv", encoding='utf-8', index=False)
+            data.to_csv(filename_usr, encoding='utf-8', index=False)
 
             return {'data': data.to_dict()}, 200
         else:
@@ -87,7 +88,7 @@ class Users(Resource):
 
         args = parser.parse_args()
         
-        data = pd.read_csv(r"/Users/emanuel.holgersson/OneDrive - Solita Oy/Solita/Documents/Python/REST_APIs/API_template/users.csv", encoding='utf-8')
+        data = pd.read_csv(filename_usr, encoding='utf-8')
          
         if args['userId'] not in list(data['userId']):
             return {
@@ -96,21 +97,15 @@ class Users(Resource):
         else:
 
             data = data[data['userId'] != args['userId']]
-            data.to_csv(r"/Users/emanuel.holgersson/OneDrive - Solita Oy/Solita/Documents/Python/REST_APIs/API_template/users.csv", encoding='utf-8', index=False)
+            data.to_csv(filename_usr, encoding='utf-8', index=False)
 
             return {'data': data.to_dict()}, 200
 
 
-"""After that, we still need to put together the Locations class. 
-
-This other class should allow us to GET, POST, PATCH (update), and DELETE locations.
-Each location is given a unique ID — when a user bookmarks a location, that unique ID
-is added to their locations list with PUT /users."""
-
 class Locations(Resource):
     
     def get(self):
-        data = pd.read_csv(r"/Users/emanuel.holgersson/OneDrive - Solita Oy/Solita/Documents/Python/REST_APIs/API_template/locations.csv", encoding='utf-8')
+        data = pd.read_csv(filename_loc, encoding='utf-8')
         data = data.to_dict()    
         return {'data': data}, 200
     
@@ -119,9 +114,10 @@ class Locations(Resource):
 
         parser.add_argument('locationId', required=True)
         parser.add_argument('name', required=True)
+        parser.add_argument('rating', required=True)
         args = parser.parse_args()
 
-        data = pd.read_csv(r"/Users/emanuel.holgersson/OneDrive - Solita Oy/Solita/Documents/Python/REST_APIs/API_template/locations.csv", encoding='utf-8')
+        data = pd.read_csv(filename_loc, encoding='utf-8')
 
         if args['locationId'] in list(data['locationId']):
             return {
@@ -134,32 +130,92 @@ class Locations(Resource):
             new_data = pd.DataFrame({
                 'locationId': args['locationId'], 
                 'name': args['name'], 
-                'rating': [np.nan]
+                'rating': args['rating']
             })
 
             data = data.append(new_data, ignore_index=True)
 
-            data.to_csv(r"/Users/emanuel.holgersson/OneDrive - Solita Oy/Solita/Documents/Python/REST_APIs/API_template/locations.csv", encoding='utf-8', index=False)
+            data.to_csv(filename_loc, encoding='utf-8', index=False)
             
             return {'data':data.to_dict()}, 200
 
 
     def patch(self):
-        pass
+        parser = reqparse.RequestParser()
+
+        parser.add_argument('locationId', required=True, type=int)
+        parser.add_argument('name', required=False)
+        parser.add_argument('rating', required=False)
+        args = parser.parse_args()
+
+        data = pd.read_csv(filename_loc, encoding='utf-8')
+        
+        if args['locationId'] in list(data['locationId']):
+            user_data = data[data['locationId']==args['locationId']]
+
+            if 'name' in args:
+                user_data['name'] = args['name']
+            
+            if 'rating' in args:
+                user_data['rating'] = args['rating']
+
+            data[data['locationId'] == args['locationId']] = user_data
+
+            data.to_csv(filename_loc, encoding='utf-8', index=False)
+
+            return {'data': data.to_dict()} , 200
+        
+        else:
+            return {
+                'message' : f"'{args['locationId']}' locataion does not exist."
+            },404
     
     def delete(self):
-        pass
+        parser = reqparse.RequestParser()
 
+        parser.add_argument('locationId', required=True, type=int) # id of locations to delete
+        args = parser.parse_args()
+
+        data = pd.read_csv(filename_loc, encoding='utf-8')
+        
+        if args['locationId'] not in list(data['locationId']):
+            return {
+                'message': f"'{args['locationId']}' location not found."
+            }, 404
+        else:
+            data = data[data['locationId'] != args['locationId']]
+            data.to_csv(filename_loc, encoding='utf-8', index=False)
+            
+            return {'data': data.to_dict()}, 200 
+
+
+class Default(Resource):
+    def get(self):
+        #data = pd.read_csv('locations.csv')
+
+        return {
+            'message':f"Default message 1, name of script: '{__name__}'"
+            }, 200
 
 
 def main():
-    print('in main')
+    #print('in main')
+    global filename_usr, filename_loc
+    path = os.getcwd()
+    filename_usr = path + '/users.csv'
+    filename_loc = path + '/locations.csv'
 
     api.add_resource(Users, '/users') # '/users' is our entry point
     api.add_resource(Locations, '/locations')  # '/locations' is our entry point
 
+    api.add_resource(Default, '/')  # '/' is our default entry point
 
-if __name__ == '__main__':
-    main()
 
-    app.run()  # run our Flask app
+main()
+#print(__name__)
+
+# TODO: Try to export app.run() and run through cmd command: python3 -m flask run in docker
+#if __name__ == '__main__':
+    #main()
+
+    #app.run()  # run our Flask app
