@@ -1,11 +1,22 @@
-# rest_api
+# API exercise for adding data to two different tables
 
 ***
 
+Build the docker image
 ```
-This is a code thingy
+docker build --tag usr-loc-api .
 ```
 
-Some Fancy Markdown
+Run as container
+
+```
+docker run -dp 5000:5000 usr-loc-api
+```
+
+Try some api call
+
+```
+localhost:5000/users
+```
 
 ---
