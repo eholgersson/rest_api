@@ -229,10 +229,10 @@ def main():
 
 main()
 #print(__name__)
-app.run()
+
 
 # TODO: Try to export app.run() and run through cmd command: python3 -m flask run in docker
-#if __name__ == '__main__':
+if __name__ == '__main__':
     #main()
 
-    #app.run()  # run our Flask app
+    app.run()  # run our Flask app
