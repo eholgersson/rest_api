@@ -1,5 +1,5 @@
 import numpy as np
-from flask import Flask
+from flask import Flask, request
 from flask_restful import Resource, Api, reqparse
 import pandas as pd
 import ast
@@ -10,36 +10,46 @@ api = Api(app)
 
 class Users(Resource):
     def get(self):
+        
+        parser = reqparse.RequestParser()
+
+        parser.add_argument('userId', required=False)
+
+        args = parser.parse_args()
+
         data = pd.read_csv(filename_usr, encoding='utf-8')
-        data = data.to_dict()
-        return {'data': data}, 200
+        
+        if args['userId'] != None:
+            print(args['userId'])
+            data = data[data['userId'] == args['userId']]
+
+            data = data.to_dict()
+            return {'data': data}, 200
+        
+        else:
+            #print('in else')
+            data = data.to_dict()
+            return {'data': data}, 200
 
     def post(self):
         # write to db
 
-        parser = reqparse.RequestParser()
-
-        parser.add_argument('userId', required=True)
-        parser.add_argument('name', required=True)
-        parser.add_argument('city', required=True)
-
-        args = parser.parse_args() # parse arguments to dict
-
         # read our csv
         data = pd.read_csv(filename_usr, encoding='utf-8')
 
-        if args['userId'] in list(data['userId']):
+        if request.form['userId'] in list(data['userId']):
             return {
-                'message' : f"'{args['userId']}' already exists."
+                'message' : f"'{request.form['userId']}' already exists."
             }, 401
+
         else:
             # create df of new data
             new_data = pd.DataFrame({
-                'userId' : args['userId'],
-                'name' : args['name'],
-                'city' : args['city'],
+                'userId' : request.form['userId'],
+                'name' : request.form['name'],
+                'city' : request.form['city'],
                 'locations': [[]]
-            })  
+            })
 
             # append the new data
             data = data.append(new_data, ignore_index=True)
@@ -49,27 +59,28 @@ class Users(Resource):
 
             return {'data':data.to_dict()}, 200
 
+
     def put(self):
-        
-        parser = reqparse.RequestParser()
-
-        parser.add_argument('userId', required=True)
-        parser.add_argument('location', required=True)
-        args = parser.parse_args() # parse arguments to dict
-
+            
         data = pd.read_csv(filename_usr, encoding='utf-8')
-        
-        if args['userId'] in list(data['userId']):
+        #return {'body':request.form}
+        if request.form['userId'] in list(data['userId']):
+            
             # evaluate strings of list to lists
             data['locations'] = data['locations'].apply(
                 lambda x: ast.literal_eval(x)
-            )
+            )            
 
             # select our user
-            user_data = data[data['userId']==args['userId']]
+            user_data = data[data['userId']==request.form['userId']]
+
+            if request.form['locations'] in list(user_data['locations'].values[0]):
+                return {
+                    'message' : f"locations already added for user '{request.form['userId']}"
+                }
 
             # update user's locations
-            user_data['locations'] = user_data['locations'].values[0].append(args['location'])
+            user_data['locations'] = user_data['locations'].values[0].append(request.form['locations'])
 
             # write back to "database"
             data.to_csv(filename_usr, encoding='utf-8', index=False)
@@ -78,7 +89,7 @@ class Users(Resource):
         else:
             # otherwise the userId does not exist
             return {
-                'message': f"'{args['userId']}' user not found."
+                'message': f"'{request.form['userId']}' user not found."
             }, 404
 
     def delete(self):
@@ -105,32 +116,42 @@ class Users(Resource):
 class Locations(Resource):
     
     def get(self):
-        data = pd.read_csv(filename_loc, encoding='utf-8')
-        data = data.to_dict()    
-        return {'data': data}, 200
-    
-    def post(self):
         parser = reqparse.RequestParser()
 
-        parser.add_argument('locationId', required=True)
-        parser.add_argument('name', required=True)
-        parser.add_argument('rating', required=True)
+        parser.add_argument('locationId', required=False, type=int)
+
         args = parser.parse_args()
 
         data = pd.read_csv(filename_loc, encoding='utf-8')
+        
+        if args['locationId'] != None:
+            print(args['locationId'])
+            data = data[data['locationId'] == args['locationId']]
 
-        if args['locationId'] in list(data['locationId']):
+            data = data.to_dict()
+            return {'data': data}, 200
+        
+        else:
+            #print('in else')
+            data = data.to_dict()
+            return {'data': data}, 200
+    
+    def post(self):
+
+        data = pd.read_csv(filename_loc, encoding='utf-8')
+        loc_id = int(request.form['locationId'])
+        
+        if loc_id in list(data['locationId']):
             return {
-                'message' : f"'{args['locationId']}' already exists" 
+                'message' : f"'{loc_id}' location already exists" 
             }, 401
 
         else:
-            print('inne i elsen')
-            print(type(args['locationId']))
+            
             new_data = pd.DataFrame({
-                'locationId': args['locationId'], 
-                'name': args['name'], 
-                'rating': args['rating']
+                'locationId': [loc_id], 
+                'name': request.form['name'], 
+                'rating': float(request.form['rating'])
             })
 
             data = data.append(new_data, ignore_index=True)
@@ -141,25 +162,20 @@ class Locations(Resource):
 
 
     def patch(self):
-        parser = reqparse.RequestParser()
-
-        parser.add_argument('locationId', required=True, type=int)
-        parser.add_argument('name', required=False)
-        parser.add_argument('rating', required=False)
-        args = parser.parse_args()
-
         data = pd.read_csv(filename_loc, encoding='utf-8')
         
-        if args['locationId'] in list(data['locationId']):
-            user_data = data[data['locationId']==args['locationId']]
+        loc_id = int(request.form['locationId'])
 
-            if 'name' in args:
-                user_data['name'] = args['name']
+        if loc_id in list(data['locationId']):
+            user_data = data[data['locationId']==loc_id]
+
+            if 'name' in request.form:
+                user_data['name'] = request.form['name']
             
-            if 'rating' in args:
-                user_data['rating'] = args['rating']
+            if 'rating' in request.form:
+                user_data['rating'] = float(request.form['rating'])
 
-            data[data['locationId'] == args['locationId']] = user_data
+            data[data['locationId'] == loc_id] = user_data
 
             data.to_csv(filename_loc, encoding='utf-8', index=False)
 
@@ -167,7 +183,7 @@ class Locations(Resource):
         
         else:
             return {
-                'message' : f"'{args['locationId']}' locataion does not exist."
+                'message' : f"'{request.form['locationId']}' locataion does not exist."
             },404
     
     def delete(self):
@@ -213,6 +229,7 @@ def main():
 
 main()
 #print(__name__)
+app.run()
 
 # TODO: Try to export app.run() and run through cmd command: python3 -m flask run in docker
 #if __name__ == '__main__':

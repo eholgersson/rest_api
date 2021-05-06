@@ -3,4 +3,6 @@ a1b,Joe,Paris,"['0001', '0002', '0008']"
 a2c,Jenny,London,"['0003', '0004', '0008']"
 b1b,Jack,London,"['0003', '0005', '0006']"
 b2c,Jill,Berlin,"['0006', '0007']"
-abc123,Emanuel,Karlshamn,[]
+abc123,Emanuel,Karlshamn,"['0009', '0009', '0009']"
+ebe123,Emanuel,Karlshamn,[]
+brb23,Kerim,Karlstad,[]
