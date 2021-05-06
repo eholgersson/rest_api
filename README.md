@@ -20,3 +20,16 @@ localhost:5000/users
 ```
 
 ---
+
+
+## Appendix
+
+Problem open Docker GUI? 
+
+Quit Docker Desktop 
+and run:
+
+```
+rm -r Library/Application\ Support/Docker\ Desktop/ 
+```
+it should relaunch now
